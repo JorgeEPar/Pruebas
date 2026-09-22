@@ -1,0 +1,17 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Smoke test: entidad mínima para validar el stack de punta a punta.
+model Note {
+  id        Int      @id @default(autoincrement())
+  text      String   @db.VarChar(280)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notes")
+}
