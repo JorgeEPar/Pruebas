@@ -1,0 +1,53 @@
+# MVP "De contenido a ideas" — Documentación técnica
+
+## Arquitectura
+
+```
+UI (/ideas, client) ──multipart/form-data──▶ POST /api/ideas (Route Handler)
+  text (≤8000) + audio opcional (≤15 MB)        │
+    │                                           ▼
+    │                                    Zod valida input
+    │                                    rate limit (memoria, 10/min/IP)
+    │                                           ▼
+    │                                    generateObject (AI SDK v7)
+    │                                    model = getTextModel()
+    │                                    schema Zod → JSON garantizado
+    │                                           ▼
+    ◀─────────────── IdeasOutput (resumen + 3-7 ideas) ─────────
+```
+
+Sin Server Actions (regla del stack): todo el backend son Route Handlers.
+
+## Archivos
+
+| Archivo | Rol |
+|---|---|
+| `src/app/ideas/page.tsx` | UI: textarea + upload + tarjetas de resultado |
+| `src/app/api/ideas/route.ts` | Handler: valida, limita, llama a la IA, mapea errores |
+| `src/lib/validations/ideas.ts` | Schemas Zod de input y output (contrato front/back) |
+| `src/lib/ai/provider.ts` | Abstracción del provider (`server-only`: no se filtra al cliente) |
+| `src/lib/rate-limit.ts` | Rate limit en memoria (mover a Redis al escalar) |
+
+## Cambiar de modelo o provider
+
+1. Solo modelo Gemini: `AI_MODEL="gemini-2.0-flash"` en `.env`.
+2. Otro provider (Claude/OpenAI): instalar `@ai-sdk/anthropic` u
+   `@ai-sdk/openai` y cambiar `getTextModel()` en
+   `src/lib/ai/provider.ts`. Las rutas y la UI no se tocan.
+
+## Seguridad aplicada
+
+- Key solo en servidor (`server-only` + env sin prefijo `NEXT_PUBLIC_`).
+- Validación Zod en backend aunque el front ya valide.
+- Límites de tamaño/tipo de archivo antes de enviar a la IA.
+- Rate limit por IP; errores 429/502 legibles en vez de 500 genérico.
+- No se loguea el contenido del usuario (ver `console.error` solo con el objeto error).
+
+## Deuda conocida / próximos pasos
+
+1. Persistir generaciones (tabla `Generation` en Prisma) + auth (Better Auth).
+2. Jobs async (Trigger.dev) cuando el pipeline incluya render de PDF.
+3. Render de carrusel: Satori + sharp → PDF (NO Puppeteer en free tiers).
+4. Uploads a S3 Spaces en vez de procesar en memoria.
+5. Cuotas por usuario (tabla `Usage`: tokens/llamadas) antes de monetizar.
+6. Rate limit en Redis + tests (vitest) del handler.

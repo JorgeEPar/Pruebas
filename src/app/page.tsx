@@ -17,6 +17,11 @@ export default async function Home() {
       <p className="mt-1 text-sm text-zinc-500">
         SSR + Route Handlers + Prisma + Postgres + Zod + RHF
       </p>
+      <p className="mt-2 text-sm">
+        <a href="/ideas" className="underline">
+          → Probar el MVP: de contenido a ideas
+        </a>
+      </p>
       <div className="mt-6">
         <NotesClient
           initialNotes={initialNotes.map((n) => ({
