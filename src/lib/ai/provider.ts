@@ -1,11 +1,16 @@
 import "server-only";
 
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 // Abstracción del provider de IA: hoy Gemini Flash (gratis), mañana
 // Claude/OpenAI cambiando solo esta función, sin tocar las rutas.
+// Nota: el SDK de Google lee GOOGLE_GENERATIVE_AI_API_KEY, así que
+// creamos el provider con nuestra GEMINI_API_KEY para no atarnos a su nombre.
 export function getTextModel() {
-  return google(process.env.AI_MODEL ?? "gemini-2.5-flash");
+  const google = createGoogleGenerativeAI({
+    apiKey: process.env.GEMINI_API_KEY,
+  });
+  return google(process.env.AI_MODEL ?? "gemini-3.6-flash");
 }
 
 export function assertAiConfigured() {
