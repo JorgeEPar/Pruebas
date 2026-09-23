@@ -26,7 +26,12 @@ export function NotesClient({ initialNotes }: { initialNotes: NoteDTO[] }) {
             className="rounded border border-zinc-200 px-3 py-2 dark:border-zinc-800"
           >
             <span>#{n.id} — {n.text}</span>
-            <span className="ml-2 text-xs text-zinc-400">
+            {/* toLocaleString difiere entre Node y navegador: se suprime
+                el aviso y React conserva el valor del cliente. */}
+            <span
+              className="ml-2 text-xs text-zinc-400"
+              suppressHydrationWarning
+            >
               {new Date(n.createdAt).toLocaleString()}
             </span>
           </li>
