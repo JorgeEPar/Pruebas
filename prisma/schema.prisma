@@ -15,3 +15,15 @@ model Note {
 
   @@map("notes")
 }
+
+// Acceso beta: códigos de invitación (opción 1, sin cuentas de usuario).
+model InviteCode {
+  code      String   @id @db.VarChar(32)
+  label     String?  @db.VarChar(120)
+  maxUses   Int      @default(50)
+  uses      Int      @default(0)
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("invite_codes")
+}

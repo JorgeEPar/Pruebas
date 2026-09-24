@@ -15,12 +15,28 @@ Sin la key, `/ideas` responde `503` con el mensaje de cómo conseguirla.
 
 ## Uso paso a paso
 
-1. Abrí http://localhost:3000/ideas.
-2. Pegá un texto (mín 20, máx 8000 caracteres) **y/o** subí un audio
+1. Abrí http://localhost:3000/acceso e ingresá tu código de invitación
+   (beta: `BETA-AGENCIA-01`. Ver códigos en `prisma/seed.ts` o crear más
+   con `npm run db:seed` tras editarlo).
+2. Entrás a http://localhost:3000/ideas (sin código redirige a `/acceso`).
+3. Pegá un texto (mín 20, máx 8000 caracteres) **y/o** subí un audio
    (cualquier formato `audio/*`, máx 15 MB).
-3. Click en **Generar ideas**.
-4. Resultado: resumen + 3 a 7 ideas, cada una con hook, título,
+4. Click en **Generar ideas**.
+5. Resultado: resumen + 3 a 7 ideas, cada una con hook, título,
    3-5 puntos de copy (uno por slide) y CTA.
+6. Cada generación consume 1 uso del código (`maxUses`, default 50).
+   Con **Salir** cerrás el acceso (borra la cookie).
+
+## Gestionar códigos
+
+```bash
+npm run db:seed          # crea/actualiza los códigos de prisma/seed.ts
+```
+
+- Revocar: `revoked = true` en tabla `invite_codes` (efecto inmediato,
+  se valida contra DB en cada request).
+- Ver usos: columna `uses` vs `maxUses`.
+- Crear uno puntual: insert en `invite_codes` (`code`, `label`, `maxUses`).
 
 ## Límites del MVP
 
@@ -39,5 +55,6 @@ Sin la key, `/ideas` responde `503` con el mensaje de cómo conseguirla.
 |---|---|---|
 | `503` falta GEMINI_API_KEY | `.env` sin key | Crear key y reiniciar `npm run dev` |
 | `429` | Rate limit local o cuota Gemini | Esperar y reintentar |
+| `503` | Modelo saturado (alta demanda) | Reintentar en unos segundos |
 | `502` key inválida | Key mal copiada | Revisar `.env` (sin comillas extra) |
 | `400` | Texto muy corto o archivo no-audio | Ajustar input |

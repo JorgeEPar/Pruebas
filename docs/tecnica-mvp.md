@@ -23,10 +23,15 @@ Sin Server Actions (regla del stack): todo el backend son Route Handlers.
 | Archivo | Rol |
 |---|---|
 | `src/app/ideas/page.tsx` | UI: textarea + upload + tarjetas de resultado |
+| `src/app/ideas/layout.tsx` | Gate server-side: redirige a `/acceso` sin código válido |
+| `src/app/acceso/page.tsx` | UI de ingreso del código |
+| `src/app/api/acceso/route.ts` | POST valida + setea cookie httpOnly · DELETE la borra |
 | `src/app/api/ideas/route.ts` | Handler: valida, limita, llama a la IA, mapea errores |
+| `src/lib/invite.ts` | `validateInvite()` contra DB (`server-only` implícito) |
 | `src/lib/validations/ideas.ts` | Schemas Zod de input y output (contrato front/back) |
 | `src/lib/ai/provider.ts` | Abstracción del provider (`server-only`: no se filtra al cliente) |
 | `src/lib/rate-limit.ts` | Rate limit en memoria (mover a Redis al escalar) |
+| `prisma/seed.ts` | Códigos iniciales (`npm run db:seed`) |
 
 ## Cambiar de modelo o provider
 

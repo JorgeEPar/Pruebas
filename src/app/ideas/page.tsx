@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   FileAudio,
   Loader2,
+  LogOut,
   Megaphone,
   Mic,
   Quote,
@@ -37,6 +39,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function IdeasPage() {
+  const router = useRouter();
   const [tab, setTab] = useState("texto");
   const [text, setText] = useState("");
   const [audio, setAudio] = useState<File | null>(null);
@@ -45,6 +48,11 @@ export default function IdeasPage() {
   const [result, setResult] = useState<IdeasOutput | null>(null);
 
   const textValid = text.trim().length >= 20;
+
+  async function logout() {
+    await fetch("/api/acceso", { method: "DELETE" });
+    router.push("/acceso");
+  }
 
   async function generate(form: FormData) {
     setLoading(true);
@@ -90,6 +98,10 @@ export default function IdeasPage() {
             De contenido a ideas
           </h1>
           <Badge variant="secondary">MVP · Gemini Flash</Badge>
+          <span className="flex-1" />
+          <Button variant="ghost" size="sm" onClick={logout}>
+            <LogOut /> Salir
+          </Button>
         </div>
         <p className="text-sm text-muted-foreground">
           Generá copys listos para carrusel desde un texto o un audio.

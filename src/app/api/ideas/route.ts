@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import {
-  generateObject,
-  type FilePart,
-  type TextPart,
-  type UserModelMessage,
-} from "ai";
+import { cookies } from "next/headers";
+import { generateObject, type FilePart, type TextPart, type UserModelMessage } from "ai";
 import { getTextModel, assertAiConfigured } from "@/lib/ai/provider";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { validateInvite, INVITE_COOKIE } from "@/lib/invite";
+import { prisma } from "@/lib/prisma";
 import {
   ideasInputSchema,
   ideasOutputSchema,
@@ -26,6 +24,16 @@ function clientIp(req: Request): string {
 }
 
 export async function POST(req: Request) {
+  const invite = await validateInvite(
+    (await cookies()).get(INVITE_COOKIE)?.value ?? "",
+  );
+  if (!invite) {
+    return NextResponse.json(
+      { error: "Acceso requerido. Ingresá tu código en /acceso" },
+      { status: 401 },
+    );
+  }
+
   const { allowed, retryAfterSec } = checkRateLimit(clientIp(req));
   if (!allowed) {
     return NextResponse.json(
@@ -106,6 +114,10 @@ export async function POST(req: Request) {
       system: SYSTEM,
       prompt: [{ role: "user", content } satisfies UserModelMessage],
     });
+    await prisma.inviteCode.update({
+      where: { code: invite.code },
+      data: { uses: { increment: 1 } },
+    });
     return NextResponse.json(object);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Error desconocido";
@@ -114,6 +126,12 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: "Cuota gratuita de Gemini agotada. Reintentá más tarde." },
         { status: 429 },
+      );
+    }
+    if (/503|overloaded|high demand|UNAVAILABLE/i.test(message)) {
+      return NextResponse.json(
+        { error: "Modelo saturado. Reintentá en unos segundos." },
+        { status: 503 },
       );
     }
     if (/401|403|api key|api_key/i.test(message)) {
