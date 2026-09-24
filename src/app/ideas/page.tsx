@@ -6,7 +6,9 @@ import {
   Check,
   Copy,
   FileAudio,
+  FileImage,
   History,
+  Image as ImageIcon,
   Loader2,
   LogOut,
   Megaphone,
@@ -126,6 +128,8 @@ export default function IdeasPage() {
   const [tab, setTab] = useState("texto");
   const [text, setText] = useState("");
   const [audio, setAudio] = useState<File | null>(null);
+  const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Result | null>(null);
@@ -195,6 +199,23 @@ export default function IdeasPage() {
     const form = new FormData();
     form.set("text", "");
     form.set("audio", audio);
+    void generate(form);
+  }
+
+  function pickImage(file: File | null) {
+    setImage(file);
+    setImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return file ? URL.createObjectURL(file) : null;
+    });
+  }
+
+  function submitImage(e: React.FormEvent) {
+    e.preventDefault();
+    if (!image || loading) return;
+    const form = new FormData();
+    form.set("text", "");
+    form.set("image", image);
     void generate(form);
   }
 
@@ -290,18 +311,21 @@ export default function IdeasPage() {
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Generá copys listos para carrusel desde un texto o un audio.
+          Generá copys listos para carrusel desde un texto, un audio o una imagen.
           Cada fuente va por separado.
         </p>
       </header>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="texto" className="gap-2">
             <Type className="size-4" /> Texto
           </TabsTrigger>
           <TabsTrigger value="audio" className="gap-2">
             <Mic className="size-4" /> Audio
+          </TabsTrigger>
+          <TabsTrigger value="imagen" className="gap-2">
+            <ImageIcon className="size-4" /> Imagen
           </TabsTrigger>
         </TabsList>
 
@@ -363,6 +387,50 @@ export default function IdeasPage() {
                 <Button type="submit" disabled={!audio || loading}>
                   {loading ? <Loader2 className="animate-spin" /> : <WandSparkles />}
                   Generar desde audio
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="imagen">
+          <Card>
+            <form onSubmit={submitImage}>
+              <CardContent className="space-y-3 pt-6">
+                <label
+                  htmlFor="image-upload"
+                  className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed p-8 text-center transition-colors hover:border-primary"
+                >
+                  {imagePreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={imagePreview} alt="Vista previa" className="max-h-48 rounded-md" />
+                  ) : (
+                    <FileImage className="size-8 text-muted-foreground" />
+                  )}
+                  <span className="text-sm font-medium">
+                    {image ? image.name : "Elegí una imagen (flyer, captura, foto)"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {image ? formatBytes(image.size) : "PNG, JPG o WEBP, máx 10 MB"}
+                  </span>
+                </label>
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => pickImage(e.target.files?.[0] ?? null)}
+                />
+                {image && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => pickImage(null)}>
+                    <X /> Quitar imagen
+                  </Button>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button type="submit" disabled={!image || loading}>
+                  {loading ? <Loader2 className="animate-spin" /> : <WandSparkles />}
+                  Generar desde imagen
                 </Button>
               </CardFooter>
             </form>

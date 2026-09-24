@@ -2,8 +2,9 @@ import { z } from "zod";
 
 export const MAX_TEXT_LENGTH = 8000;
 export const MAX_AUDIO_BYTES = 15 * 1024 * 1024; // 15 MB
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
 
-// Input del MVP: texto pegado y/o audio subido. Al menos uno requerido.
+// Input del MVP: texto pegado, audio y/o imagen. Al menos uno requerido.
 export const ideasInputSchema = z
   .object({
     text: z
@@ -13,9 +14,10 @@ export const ideasInputSchema = z
       .optional()
       .default(""),
     hasAudio: z.boolean().optional().default(false),
+    hasImage: z.boolean().optional().default(false),
   })
-  .refine((v) => v.text.length >= 20 || v.hasAudio, {
-    message: "Pega un texto (mín 20 caracteres) o sube un audio",
+  .refine((v) => v.text.length >= 20 || v.hasAudio || v.hasImage, {
+    message: "Pega un texto (mín 20 caracteres), sube un audio o una imagen",
   });
 
 export type IdeasInput = z.infer<typeof ideasInputSchema>;

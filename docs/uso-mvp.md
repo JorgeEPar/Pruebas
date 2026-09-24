@@ -1,7 +1,7 @@
 # MVP "De contenido a ideas" — Guía de uso
 
-Genera ideas de contenido listas para carrusel a partir de un texto pegado
-o un audio subido, usando Gemini Flash (gratis).
+Genera ideas de contenido listas para carrusel a partir de un texto pegado,
+un audio o una imagen, usando Gemini Flash (gratis).
 
 ## Requisitos
 
@@ -19,8 +19,9 @@ Sin la key, `/ideas` responde `503` con el mensaje de cómo conseguirla.
    (beta: `BETA-AGENCIA-01`. Ver códigos en `prisma/seed.ts` o crear más
    con `npm run db:seed` tras editarlo).
 2. Entrás a http://localhost:3000/ideas (sin código redirige a `/acceso`).
-3. Pegá un texto (mín 20, máx 8000 caracteres) **y/o** subí un audio
-   (cualquier formato `audio/*`, máx 15 MB).
+3. Pegá un texto (mín 20, máx 8000 caracteres), subí un audio
+   (cualquier formato `audio/*`, máx 15 MB) o una imagen
+   (PNG/JPG/WEBP, máx 10 MB, ej. flyer o captura).
 4. Click en **Generar ideas**.
 5. Resultado: resumen + 3 a 7 ideas, cada una con hook, título,
    3-5 puntos de copy (uno por slide) y CTA.

@@ -9,13 +9,14 @@ import {
   ideasInputSchema,
   ideasOutputSchema,
   MAX_AUDIO_BYTES,
+  MAX_IMAGE_BYTES,
 } from "@/lib/validations/ideas";
 
 const SYSTEM = `Sos un editor de contenido para agencias y creadores.
 Extraé entre 5 y 7 ideas clave del material y devolvé copy listo para publicar.
 Reglas: español neutro y directo; hooks de máx 15 palabras sin clickbait engañoso;
 nada de muletillas de IA ("en el vertiginoso mundo", "profundicemos", emojis en cada línea).
-Si el material es audio, primero transcribilo mentalmente y trabajá sobre la transcripción.
+Si el material es audio o imagen, primero interpretá su contenido y trabajá sobre eso.
 Además adaptá el contenido a cada red en "versiones": LinkedIn profesional con hashtags,
 Instagram breve con emojis, TikTok como guion de 30 segundos, X corto y directo.`;
 
@@ -56,27 +57,32 @@ export async function POST(req: Request) {
 
   const text = String(form.get("text") ?? "");
   const audio = form.get("audio");
-  const audioFile =
-    audio instanceof File && audio.size > 0 ? audio : null;
+  const audioFile = audio instanceof File && audio.size > 0 ? audio : null;
+  const image = form.get("image");
+  const imageFile = image instanceof File && image.size > 0 ? image : null;
 
   if (audioFile) {
     if (!audioFile.type.startsWith("audio/")) {
-      return NextResponse.json(
-        { error: "El archivo debe ser de audio" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "El archivo debe ser de audio" }, { status: 400 });
     }
     if (audioFile.size > MAX_AUDIO_BYTES) {
-      return NextResponse.json(
-        { error: "Audio máx 15 MB" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Audio máx 15 MB" }, { status: 400 });
+    }
+  }
+
+  if (imageFile) {
+    if (!imageFile.type.startsWith("image/")) {
+      return NextResponse.json({ error: "El archivo debe ser una imagen" }, { status: 400 });
+    }
+    if (imageFile.size > MAX_IMAGE_BYTES) {
+      return NextResponse.json({ error: "Imagen máx 10 MB" }, { status: 400 });
     }
   }
 
   const parsed = ideasInputSchema.safeParse({
     text,
     hasAudio: audioFile !== null,
+    hasImage: imageFile !== null,
   });
   if (!parsed.success) {
     return NextResponse.json(
@@ -109,6 +115,13 @@ export async function POST(req: Request) {
         mediaType: audioFile.type,
       });
     }
+    if (imageFile) {
+      content.push({
+        type: "file",
+        data: Buffer.from(await imageFile.arrayBuffer()),
+        mediaType: imageFile.type,
+      });
+    }
 
     const { object } = await generateObject({
       model: getTextModel(),
@@ -119,7 +132,7 @@ export async function POST(req: Request) {
     const generation = await prisma.generation.create({
       data: {
         inviteCode: invite.code,
-        inputKind: audioFile ? "audio" : "texto",
+        inputKind: imageFile ? "imagen" : audioFile ? "audio" : "texto",
         inputText: parsed.data.text.length > 0 ? parsed.data.text : null,
         output: object,
         model: process.env.AI_MODEL ?? "gemini-3.5-flash-lite",
