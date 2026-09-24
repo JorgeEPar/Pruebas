@@ -1,52 +1,50 @@
-# Planificación App Web Full-Stack - Proyecto Aprendizaje OpenCode
+# Planificación — Contenido IA para agencias/creadores
 
-**Fecha:** 2026-09-21
-**Repo:** https://github.com/JorgeEPar/Pruebas
+**Actualizado:** 2026-09-24
+**Repo:** https://github.com/JorgeEPar/Pruebas (`main`, commits convencionales)
 **Sesión local:** `D:\pruebas\Pruebas`
-**Estado git:** primer push OK (`1bb38e5 chore: setup inicial`). Rama `main` sincronizada con `origin/main`.
+**Negocio elegido:** servicio de generación de contenido (texto/audio → ideas + copys por red) para agencias y creadores. Solo dev.
 
-> Copia versionada del doc central en `C:\Users\Jorge\.opencode\plan\planificacion-app-web.md`.
+## 1. Stack real (lo instalado, no lo planeado)
 
-## 1. Decisión GitHub vs GitLab
+- **Full-Stack:** Next.js 16 + React 19 + TS (Route Handlers, sin Server Actions) + Tailwind 4 + shadcn/ui + lucide-react.
+- **Validación:** Zod compartida front/back (`src/lib/validations/`). Forms: React Hook Form.
+- **DB:** PostgreSQL 16 en Docker + Prisma 6 (v6.19.3 fijado; npm trae la 8 RC por defecto).
+- **IA:** AI SDK v7 + `@ai-sdk/google`. Modelo default `gemini-3.5-flash-lite` (el 2.5 retirado, el 3.6 free limitado a ~20 req). Abstracción en `src/lib/ai/provider.ts` (`server-only`, cambio de modelo por env).
+- **Acceso:** códigos de invitación (`InviteCode`: usos, revocación) + cookie httpOnly. Sin Better Auth todavía (fase posterior: magic link + Google OAuth).
+- **CI:** GitHub Actions lint + build en push/PR. Deploy pendiente (candidatos: Koyeb + Neon o Render; Railway sin free tier, descartado para pruebas).
+- **Pendiente stack original:** Better Auth, Brevo, S3 Spaces, Redis/BullMQ o Trigger.dev (entran con contenido programado / carrusel PDF).
 
-**SÍ, Railway funciona nativo con GitHub (combinación recomendada).**
-- Railway → GitHub App → auto-deploy en cada push a `main`.
-- GitLab sin integración nativa. **Decisión: GitHub.**
+## 2. Decisiones tomadas
 
-## 2. Stack fijo (de `stack1.md`)
-
-- **Full-Stack:** Next.js (React + Node monorepo). Backend SOLO Route Handlers REST, prohibido Server Actions.
-- **Render:** SSR (SEO) + SSG (landings).
-- **DB:** PostgreSQL + Prisma.
-- **Frontend:** shadcn/ui + React Hook Form + Zod (schemas compartidos en `lib/validations/`).
-- **Servicios:** Better Auth + Brevo (emails) + Spaces S3 (archivos, nunca en DB).
-- **Deploy:** Railway + CI/CD en push a `main`.
+- GitHub sobre GitLab (Railway nativo, aunque Railway quedó descartado por falta de free tier).
+- DB local en Docker (Neon cuando se despliegue).
+- Satori + sharp para carrusel PDF (NO Puppeteer en free tiers).
+- Magic link + Google OAuth en vez de password clásico (futuro).
+- Lemon Squeezy sobre Stripe para monetizar (MoR, mejor para solo-dev LatAm).
+- Ingesta legal: solo lo que el usuario sube/pega (no scrapear YouTube/LinkedIn).
 
 ## 3. Roadmap
 
-### Fase 1 - Setup entorno OpenCode
-- [x] Skills: `nextjs-15`, `typescript`, `tailwind-4`, `zod-4` (verificados 2026-09-21)
-- [ ] MCPs: postgres, railway, github (pendiente `.opencode.json`)
-- [ ] ESLint + Prettier (pendiente)
-- [ ] Branches `main/develop/feature/*` (solo `main` existe)
-- [ ] Pipeline push `main` → Railway (pendiente)
+### Hecho (verificado e2e, pusheado)
+- [x] Scaffold + Postgres Docker + smoke test (`8cfe49f`, `4b76185`)
+- [x] MVP ideas texto/audio → copy estructurado (`66d73f8`)
+- [x] Fix hidratación fechas (`b6bfdeb`) + fix modelo/key Gemini (`3116ef7`)
+- [x] Rediseño `/ideas` tabs + shadcn (`b1d7c7a`)
+- [x] Gate invitaciones + cuotas (`90b8140`)
+- [x] Milestone 1: historial + editor + regenerar slide (`9a7d996`)
+- [x] Tema violeta + versiones por red con copiar (`b74ef7e`)
+- [x] CI lint + build (`b4b18f2`)
+- [x] Docs: `uso-mvp.md`, `tecnica-mvp.md` (esta planificación)
 
-### Fase 2 - Construcción MVP
-1. Proponer 3 ideas de negocio (auth + S3 + Brevo + CRUD Prisma).
-2. Usuario elige 1.
-3. Definir carpetas, modelo Prisma, rutas API/UI, componentes shadcn.
-4. Implementar por milestones con validación.
+### Siguiente (orden acordado)
+1. Imagen como input (gratis, mismo endpoint, `mediaType: image/*`).
+2. Milestone 3: contenido programado + email (Brevo) → requiere Trigger.dev, tablas `Interest`/`Schedule`/`Delivery`, cuota diaria.
+3. Milestone 2: carrusel PDF (Satori + sharp) + brand kits.
+4. Auth real (Better Auth) + pagos (Lemon Squeezy) + deploy (Koyeb + Neon).
 
-## 4. Auditoría entorno (2026-09-21)
-
-- Base OK: Node `v24.21.0`, npm `11.19.0`, git `2.44`, OpenCode `v2.0.12`.
-- Docker `25.0.3` instalado, daemon apagado → abrir Docker Desktop.
-- Repo sin `package.json` (app aún no creada).
-- **Decisión DB local: Docker** con `docker-compose.yml` (PostgreSQL). Neon descartado.
-
-## 5. Próximo paso
-
-1. Abrir Docker Desktop.
-2. Scaffold Next.js + TS + Tailwind + shadcn + Prisma + Zod + RHF.
-3. Añadir `docker-compose.yml`, `.env.example`, ESLint/Prettier, `.opencode.json` con MCPs.
-4. Proponer las 3 ideas de negocio.
+### Deuda conocida
+- Vuln Dependabot high (`deepmerge-ts` vía Prisma dev): solo tooling, fix exige breaking change → diferir.
+- Rate limit en memoria → Redis al escalar. Sin tests (vitest pendiente).
+- `.opencode.json` con MCPs pendiente. Rama `develop` pendiente.
+- Free tier Gemini por modelo varía mucho (documentado en `uso-mvp.md`).
