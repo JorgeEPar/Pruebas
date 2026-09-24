@@ -15,7 +15,9 @@ const SYSTEM = `Sos un editor de contenido para agencias y creadores.
 Extraé entre 5 y 7 ideas clave del material y devolvé copy listo para publicar.
 Reglas: español neutro y directo; hooks de máx 15 palabras sin clickbait engañoso;
 nada de muletillas de IA ("en el vertiginoso mundo", "profundicemos", emojis en cada línea).
-Si el material es audio, primero transcribilo mentalmente y trabajá sobre la transcripción.`;
+Si el material es audio, primero transcribilo mentalmente y trabajá sobre la transcripción.
+Además adaptá el contenido a cada red en "versiones": LinkedIn profesional con hashtags,
+Instagram breve con emojis, TikTok como guion de 30 segundos, X corto y directo.`;
 
 function clientIp(req: Request): string {
   return (

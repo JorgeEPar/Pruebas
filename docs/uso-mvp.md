@@ -24,7 +24,9 @@ Sin la key, `/ideas` responde `503` con el mensaje de cómo conseguirla.
 4. Click en **Generar ideas**.
 5. Resultado: resumen + 3 a 7 ideas, cada una con hook, título,
    3-5 puntos de copy (uno por slide) y CTA.
-6. Cada generación consume 1 uso del código (`maxUses`, default 50).
+6. **Versiones por red**: el mismo contenido adaptado a LinkedIn,
+   Instagram, TikTok y X, cada uno con botón **Copiar**.
+7. Cada generación consume 1 uso del código (`maxUses`, default 50).
    Con **Salir** cerrás el acceso (borra la cookie).
 
 ## Gestionar códigos
@@ -41,7 +43,7 @@ npm run db:seed          # crea/actualiza los códigos de prisma/seed.ts
 ## Límites del MVP
 
 - 10 generaciones por minuto por IP (rate limit en memoria).
-- Sin login ni persistencia: el resultado vive solo en pantalla.
+- Acceso por código de invitación; el historial persiste por código.
 - Cuota gratis de Gemini: varía MUCHO por modelo (`gemini-3.6-flash`
   tiene ~20 req y se agota testeando; `gemini-3.5-flash-lite` es el
   default por su cuota generosa). Ver límites vigentes en AI Studio.

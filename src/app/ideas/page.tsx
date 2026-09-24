@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Check,
+  Copy,
   FileAudio,
   History,
   Loader2,
@@ -13,6 +15,7 @@ import {
   Quote,
   RefreshCw,
   Save,
+  Share2,
   Sparkles,
   TriangleAlert,
   Type,
@@ -32,12 +35,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Versiones } from "@/lib/validations/ideas";
 import { Textarea } from "@/components/ui/textarea";
 
 const MAX_TEXT = 8000;
 
 type Idea = { hook: string; titulo: string; puntos: string[]; cta: string };
-type Result = { generationId: string | null; ideas: Idea[]; resumen: string };
+type Result = {
+  generationId: string | null;
+  ideas: Idea[];
+  resumen: string;
+  versiones?: Versiones | null;
+};
 type HistoryItem = {
   id: string;
   inputKind: string;
@@ -51,6 +60,65 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const REDES = [
+  { key: "linkedin", label: "LinkedIn" },
+  { key: "instagram", label: "Instagram" },
+  { key: "tiktok", label: "TikTok" },
+  { key: "x", label: "X" },
+] as const;
+
+function VersionesPorRed({ versiones }: { versiones: Versiones }) {
+  const [copiado, setCopiado] = useState<string | null>(null);
+
+  async function copiar(red: string, texto: string) {
+    try {
+      await navigator.clipboard.writeText(texto);
+    } catch {
+      // Fallback para contextos no seguros.
+      const ta = document.createElement("textarea");
+      ta.value = texto;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    setCopiado(red);
+    setTimeout(() => setCopiado((c) => (c === red ? null : c)), 1500);
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Share2 className="size-4" /> Versiones por red
+        </CardTitle>
+        <CardDescription>
+          El mismo contenido adaptado a cada plataforma en 1 click.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {REDES.map(({ key, label }) => (
+          <div key={key} className="rounded-lg border p-3">
+            <div className="mb-1 flex items-center gap-2">
+              <Badge variant="secondary">{label}</Badge>
+              <span className="flex-1" />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => copiar(key, versiones[key])}
+              >
+                {copiado === key ? <Check /> : <Copy />}
+                {copiado === key ? "Copiado" : "Copiar"}
+              </Button>
+            </div>
+            <p className="whitespace-pre-wrap text-sm">{versiones[key]}</p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function IdeasPage() {
@@ -103,6 +171,7 @@ export default function IdeasPage() {
         generationId: data.generationId ?? null,
         ideas: data.ideas,
         resumen: data.resumen,
+        versiones: data.versiones ?? null,
       });
       void loadHistory();
     } catch {
@@ -141,6 +210,7 @@ export default function IdeasPage() {
       generationId: gen.id,
       ideas: gen.output.ideas,
       resumen: gen.output.resumen,
+      versiones: gen.output.versiones ?? null,
     });
     setEditing(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -210,7 +280,7 @@ export default function IdeasPage() {
     <main className="mx-auto max-w-2xl space-y-6 p-6 sm:p-8">
       <header className="space-y-2">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
             De contenido a ideas
           </h1>
           <Badge variant="secondary">MVP · Gemini Flash</Badge>
@@ -339,6 +409,7 @@ export default function IdeasPage() {
           <Card className="bg-muted/50">
             <CardContent className="pt-6 text-sm">{result.resumen}</CardContent>
           </Card>
+          {result.versiones && <VersionesPorRed versiones={result.versiones} />}
           {result.ideas.map((idea, i) => (
             <Card key={i}>
               <CardHeader>

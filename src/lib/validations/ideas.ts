@@ -32,9 +32,20 @@ export const ideaSchema = z.object({
   cta: z.string().describe("Llamado a la acción de cierre"),
 });
 
+// Versiones del mismo contenido adaptadas por red (1 llamada, no 4).
+export const versionesSchema = z.object({
+  linkedin: z.string().max(700).describe("Post profesional con 3-5 hashtags"),
+  instagram: z.string().max(450).describe("Caption corta con emojis y hashtags"),
+  tiktok: z.string().max(550).describe("Guion 30s: gancho, cuerpo y CTA"),
+  x: z.string().max(280).describe("Post corto estilo X, sin hashtags de más"),
+});
+
+export type Versiones = z.infer<typeof versionesSchema>;
+
 export const ideasOutputSchema = z.object({
   ideas: z.array(ideaSchema).min(3).max(7),
   resumen: z.string().describe("Resumen del contenido en 2 líneas"),
+  versiones: versionesSchema.describe("Adaptaciones por red social"),
 });
 
 export type IdeasOutput = z.infer<typeof ideasOutputSchema>;
