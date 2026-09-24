@@ -114,11 +114,20 @@ export async function POST(req: Request) {
       system: SYSTEM,
       prompt: [{ role: "user", content } satisfies UserModelMessage],
     });
+    const generation = await prisma.generation.create({
+      data: {
+        inviteCode: invite.code,
+        inputKind: audioFile ? "audio" : "texto",
+        inputText: parsed.data.text.length > 0 ? parsed.data.text : null,
+        output: object,
+        model: process.env.AI_MODEL ?? "gemini-3.5-flash-lite",
+      },
+    });
     await prisma.inviteCode.update({
       where: { code: invite.code },
       data: { uses: { increment: 1 } },
     });
-    return NextResponse.json(object);
+    return NextResponse.json({ ...object, generationId: generation.id });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Error desconocido";
     // Cuota gratis agotada o key inválida → 429/502 legible, no 500 genérico.

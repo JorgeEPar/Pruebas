@@ -24,6 +24,21 @@ model InviteCode {
   uses      Int      @default(0)
   revoked   Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
+  generations Generation[]
 
   @@map("invite_codes")
+}
+
+// Milestone 1: historial de generaciones por código de invitación.
+model Generation {
+  id         String     @id @default(cuid())
+  invite     InviteCode @relation(fields: [inviteCode], references: [code], onDelete: Cascade)
+  inviteCode String     @map("invite_code") @db.VarChar(32)
+  inputKind  String     @map("input_kind") @db.VarChar(10)
+  inputText  String?    @map("input_text") @db.Text
+  output     Json
+  model      String     @db.VarChar(80)
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@map("generations")
 }

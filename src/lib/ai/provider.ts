@@ -10,7 +10,7 @@ export function getTextModel() {
   const google = createGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY,
   });
-  return google(process.env.AI_MODEL ?? "gemini-3.6-flash");
+  return google(process.env.AI_MODEL ?? "gemini-3.5-flash-lite");
 }
 
 export function assertAiConfigured() {

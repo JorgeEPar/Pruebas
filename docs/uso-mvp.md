@@ -42,9 +42,10 @@ npm run db:seed          # crea/actualiza los códigos de prisma/seed.ts
 
 - 10 generaciones por minuto por IP (rate limit en memoria).
 - Sin login ni persistencia: el resultado vive solo en pantalla.
-- Cuota gratis de Gemini: ~10-15 req/min y cientos/miles por día
-  (ver límites vigentes en AI Studio). Si se agota → error `429`
-  con mensaje legible.
+- Cuota gratis de Gemini: varía MUCHO por modelo (`gemini-3.6-flash`
+  tiene ~20 req y se agota testeando; `gemini-3.5-flash-lite` es el
+  default por su cuota generosa). Ver límites vigentes en AI Studio.
+  Si se agota → error `429` con mensaje legible.
 - El audio se envía a Google para procesarlo (free tier: el contenido
   puede usarse para mejorar sus productos — avisarlo en términos
   cuando haya usuarios reales).

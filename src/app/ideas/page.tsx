@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   FileAudio,
+  History,
   Loader2,
   LogOut,
   Megaphone,
   Mic,
+  Pencil,
   Quote,
+  RefreshCw,
+  Save,
   Sparkles,
   TriangleAlert,
   Type,
@@ -25,12 +29,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import type { IdeasOutput } from "@/lib/validations/ideas";
 
 const MAX_TEXT = 8000;
+
+type Idea = { hook: string; titulo: string; puntos: string[]; cta: string };
+type Result = { generationId: string | null; ideas: Idea[]; resumen: string };
+type HistoryItem = {
+  id: string;
+  inputKind: string;
+  inputPreview: string;
+  ideasCount: number;
+  resumen: string;
+  createdAt: string;
+};
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -45,19 +60,38 @@ export default function IdeasPage() {
   const [audio, setAudio] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<IdeasOutput | null>(null);
+  const [result, setResult] = useState<Result | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [editing, setEditing] = useState<number | null>(null);
+  const [draft, setDraft] = useState<Idea | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [regenIndex, setRegenIndex] = useState<number | null>(null);
 
   const textValid = text.trim().length >= 20;
 
-  async function logout() {
-    await fetch("/api/acceso", { method: "DELETE" });
-    router.push("/acceso");
-  }
+  const loadHistory = useCallback(async () => {
+    const res = await fetch("/api/generations", { cache: "no-store" });
+    if (res.ok) setHistory(await res.json());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/generations", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: HistoryItem[]) => {
+        if (!cancelled) setHistory(data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function generate(form: FormData) {
     setLoading(true);
     setError(null);
     setResult(null);
+    setEditing(null);
     try {
       const res = await fetch("/api/ideas", { method: "POST", body: form });
       const data = await res.json();
@@ -65,7 +99,12 @@ export default function IdeasPage() {
         setError(data.error ?? "Falló la generación");
         return;
       }
-      setResult(data as IdeasOutput);
+      setResult({
+        generationId: data.generationId ?? null,
+        ideas: data.ideas,
+        resumen: data.resumen,
+      });
+      void loadHistory();
     } catch {
       setError("Error de red. Reintentá.");
     } finally {
@@ -88,6 +127,83 @@ export default function IdeasPage() {
     form.set("text", "");
     form.set("audio", audio);
     void generate(form);
+  }
+
+  async function openHistory(id: string) {
+    setError(null);
+    const res = await fetch(`/api/generations?id=${id}`, { cache: "no-store" });
+    if (!res.ok) {
+      setError("No se pudo abrir el historial");
+      return;
+    }
+    const gen = await res.json();
+    setResult({
+      generationId: gen.id,
+      ideas: gen.output.ideas,
+      resumen: gen.output.resumen,
+    });
+    setEditing(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function startEdit(i: number) {
+    if (!result) return;
+    setEditing(i);
+    setDraft({ ...result.ideas[i], puntos: [...result.ideas[i].puntos] });
+  }
+
+  async function saveEdit(i: number) {
+    if (!result || !result.generationId || !draft) return;
+    setSaving(true);
+    const ideas = result.ideas.map((idea, j) => (j === i ? draft : idea));
+    try {
+      const res = await fetch("/api/generations", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: result.generationId,
+          output: { resumen: result.resumen, ideas },
+        }),
+      });
+      if (!res.ok) {
+        setError("No se pudo guardar la edición");
+        return;
+      }
+      setResult({ ...result, ideas });
+      setEditing(null);
+      setDraft(null);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function regenSlide(i: number) {
+    if (!result || !result.generationId) return;
+    setRegenIndex(i);
+    setError(null);
+    try {
+      const res = await fetch("/api/ideas/regenerar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ generationId: result.generationId, index: i }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Falló la regeneración");
+        return;
+      }
+      setResult({ ...result, ideas: data.ideas });
+      setEditing(null);
+    } catch {
+      setError("Error de red. Reintentá.");
+    } finally {
+      setRegenIndex(null);
+    }
+  }
+
+  async function logout() {
+    await fetch("/api/acceso", { method: "DELETE" });
+    router.push("/acceso");
   }
 
   return (
@@ -136,11 +252,7 @@ export default function IdeasPage() {
               </CardContent>
               <CardFooter>
                 <Button type="submit" disabled={!textValid || loading}>
-                  {loading ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <WandSparkles />
-                  )}
+                  {loading ? <Loader2 className="animate-spin" /> : <WandSparkles />}
                   Generar desde texto
                 </Button>
               </CardFooter>
@@ -161,9 +273,7 @@ export default function IdeasPage() {
                     {audio ? audio.name : "Elegí un archivo de audio"}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {audio
-                      ? formatBytes(audio.size)
-                      : "Cualquier formato audio/*, máx 15 MB"}
+                    {audio ? formatBytes(audio.size) : "Cualquier formato audio/*, máx 15 MB"}
                   </span>
                 </label>
                 <input
@@ -174,23 +284,14 @@ export default function IdeasPage() {
                   onChange={(e) => setAudio(e.target.files?.[0] ?? null)}
                 />
                 {audio && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAudio(null)}
-                  >
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setAudio(null)}>
                     <X /> Quitar archivo
                   </Button>
                 )}
               </CardContent>
               <CardFooter>
                 <Button type="submit" disabled={!audio || loading}>
-                  {loading ? (
-                    <Loader2 className="animate-spin" />
-                  ) : (
-                    <WandSparkles />
-                  )}
+                  {loading ? <Loader2 className="animate-spin" /> : <WandSparkles />}
                   Generar desde audio
                 </Button>
               </CardFooter>
@@ -200,10 +301,7 @@ export default function IdeasPage() {
       </Tabs>
 
       {error && (
-        <div
-          role="alert"
-          className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm"
-        >
+        <div role="alert" className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm">
           <TriangleAlert className="mt-0.5 size-4 shrink-0" />
           {error}
         </div>
@@ -239,37 +337,127 @@ export default function IdeasPage() {
       {result && (
         <section className="space-y-4">
           <Card className="bg-muted/50">
-            <CardContent className="pt-6 text-sm">
-              {result.resumen}
-            </CardContent>
+            <CardContent className="pt-6 text-sm">{result.resumen}</CardContent>
           </Card>
           {result.ideas.map((idea, i) => (
             <Card key={i}>
               <CardHeader>
-                <Badge className="w-fit" variant="outline">
-                  Idea {i + 1}
-                </Badge>
-                <CardTitle className="text-lg">{idea.titulo}</CardTitle>
-                <CardDescription className="flex items-start gap-1.5">
-                  <Quote className="mt-0.5 size-3.5 shrink-0" />
-                  {idea.hook}
-                </CardDescription>
+                <Badge className="w-fit" variant="outline">Idea {i + 1}</Badge>
+                {editing === i && draft ? (
+                  <Input
+                    value={draft.titulo}
+                    onChange={(e) => setDraft({ ...draft, titulo: e.target.value })}
+                    aria-label="Título"
+                  />
+                ) : (
+                  <CardTitle className="text-lg">{idea.titulo}</CardTitle>
+                )}
+                {editing === i && draft ? (
+                  <Input
+                    value={draft.hook}
+                    onChange={(e) => setDraft({ ...draft, hook: e.target.value })}
+                    aria-label="Hook"
+                  />
+                ) : (
+                  <CardDescription className="flex items-start gap-1.5">
+                    <Quote className="mt-0.5 size-3.5 shrink-0" />
+                    {idea.hook}
+                  </CardDescription>
+                )}
               </CardHeader>
               <CardContent>
-                <ol className="list-decimal space-y-1.5 pl-5 text-sm">
-                  {idea.puntos.map((p, j) => (
-                    <li key={j}>{p}</li>
-                  ))}
-                </ol>
+                {editing === i && draft ? (
+                  <Textarea
+                    rows={6}
+                    value={draft.puntos.join("\n")}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        puntos: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+                      })
+                    }
+                    aria-label="Puntos (uno por línea)"
+                  />
+                ) : (
+                  <ol className="list-decimal space-y-1.5 pl-5 text-sm">
+                    {idea.puntos.map((p, j) => (
+                      <li key={j}>{p}</li>
+                    ))}
+                  </ol>
+                )}
               </CardContent>
-              <CardFooter>
-                <p className="flex items-start gap-1.5 text-sm font-medium">
-                  <Megaphone className="mt-0.5 size-4 shrink-0" />
-                  {idea.cta}
-                </p>
+              <CardFooter className="flex-col items-start gap-3">
+                {editing === i && draft ? (
+                  <Input
+                    value={draft.cta}
+                    onChange={(e) => setDraft({ ...draft, cta: e.target.value })}
+                    aria-label="CTA"
+                  />
+                ) : (
+                  <p className="flex items-start gap-1.5 text-sm font-medium">
+                    <Megaphone className="mt-0.5 size-4 shrink-0" />
+                    {idea.cta}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {editing === i ? (
+                    <>
+                      <Button size="sm" onClick={() => saveEdit(i)} disabled={saving}>
+                        {saving ? <Loader2 className="animate-spin" /> : <Save />}
+                        Guardar
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setEditing(null); setDraft(null); }}>
+                        <X /> Cancelar
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => startEdit(i)}>
+                        <Pencil /> Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => regenSlide(i)}
+                        disabled={regenIndex !== null || !result.generationId}
+                        title={!result.generationId ? "Solo disponible en items guardados" : undefined}
+                      >
+                        {regenIndex === i ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+                        Regenerar slide
+                      </Button>
+                    </>
+                  )}
+                </div>
               </CardFooter>
             </Card>
           ))}
+        </section>
+      )}
+
+      {history.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <History className="size-4" /> Historial
+          </h2>
+          <div className="space-y-2">
+            {history.map((h) => (
+              <button
+                key={h.id}
+                onClick={() => openHistory(h.id)}
+                className="w-full rounded-lg border p-3 text-left text-sm transition-colors hover:border-primary"
+              >
+                <span className="flex items-center gap-2">
+                  <Badge variant="outline">{h.inputKind}</Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(h.createdAt).toLocaleString()} · {h.ideasCount} ideas
+                  </span>
+                </span>
+                <span className="mt-1 block truncate text-muted-foreground">
+                  {h.inputPreview || h.resumen}
+                </span>
+              </button>
+            ))}
+          </div>
         </section>
       )}
     </main>
