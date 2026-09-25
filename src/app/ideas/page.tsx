@@ -38,9 +38,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Versiones } from "@/lib/validations/ideas";
+import { MAX_TEXT_LENGTH as MAX_TEXT } from "@/lib/validations/ideas";
 import { Textarea } from "@/components/ui/textarea";
-
-const MAX_TEXT = 8000;
 
 type Idea = { hook: string; titulo: string; puntos: string[]; cta: string };
 type Result = {
@@ -253,7 +252,11 @@ export default function IdeasPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: result.generationId,
-          output: { resumen: result.resumen, ideas },
+          output: {
+            resumen: result.resumen,
+            ideas,
+            ...(result.versiones ? { versiones: result.versiones } : {}),
+          },
         }),
       });
       if (!res.ok) {
@@ -373,7 +376,7 @@ export default function IdeasPage() {
                 <input
                   id="audio-upload"
                   type="file"
-                  accept="audio/*"
+                  accept="audio/mpeg,audio/wav,audio/ogg,audio/mp4,audio/webm,audio/aac,audio/flac"
                   className="hidden"
                   onChange={(e) => setAudio(e.target.files?.[0] ?? null)}
                 />
@@ -417,7 +420,7 @@ export default function IdeasPage() {
                 <input
                   id="image-upload"
                   type="file"
-                  accept="image/png,image/jpeg,image/webp"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   className="hidden"
                   onChange={(e) => pickImage(e.target.files?.[0] ?? null)}
                 />

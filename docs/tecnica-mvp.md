@@ -49,6 +49,14 @@ Sin Server Actions (regla del stack): todo el backend son Route Handlers.
 - Límites de tamaño/tipo de archivo antes de enviar a la IA.
 - Rate limit por IP; errores 429/502 legibles en vez de 500 genérico.
 - No se loguea el contenido del usuario (ver `console.error` solo con el objeto error).
+- Hardening (revisión 2026-09-25): cuota atómica por transacción
+  (`updateMany` condicional → 403 si se agota en concurrencia);
+  rate limit en `/api/acceso` (5/min anti brute-force) y por código
+  (no por IP spoofeable) con purga del Map; allowlist de MIME +
+  re-decodificación con sharp (SVG y spoofeados → 400);
+  PUT validado con Zod estricto; `/api/notes` con invite + `take: 50`;
+  material entre `<material>` (ignorar instrucciones internas);
+  cookie de salida con `path` explícito; `health` con `dynamic`.
 
 ## Deuda conocida / próximos pasos
 

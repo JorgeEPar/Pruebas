@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { validateInvite, INVITE_COOKIE } from "@/lib/invite";
 import { prisma } from "@/lib/prisma";
+import { saveGenerationSchema } from "@/lib/validations/ideas";
 
 // GET → historial del código actual (sin el output completo).
 // GET ?id= → detalle con output para re-ver / editar.
@@ -61,20 +62,11 @@ export async function PUT(req: Request) {
   }
 
   const body: unknown = await req.json().catch(() => null);
-  const id = typeof body === "object" && body !== null
-    ? String((body as Record<string, unknown>).id ?? "")
-    : "";
-  const output = typeof body === "object" && body !== null
-    ? (body as Record<string, unknown>).output
-    : null;
-  if (!id || typeof output !== "object" || output === null) {
-    return NextResponse.json({ error: "id y output requeridos" }, { status: 400 });
+  const parsed = saveGenerationSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
-
-  const ideas = (output as Record<string, unknown>).ideas;
-  if (!Array.isArray(ideas) || ideas.length < 1 || ideas.length > 7) {
-    return NextResponse.json({ error: "output inválido" }, { status: 400 });
-  }
+  const { id, output } = parsed.data;
 
   const updated = await prisma.generation.updateMany({
     where: { id, inviteCode: invite.code },

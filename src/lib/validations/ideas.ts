@@ -24,14 +24,14 @@ export type IdeasInput = z.infer<typeof ideasInputSchema>;
 
 // Output estructurado que devuelve la IA (y consume la UI).
 export const ideaSchema = z.object({
-  hook: z.string().describe("Gancho de apertura, máx 15 palabras"),
-  titulo: z.string().describe("Título de la idea"),
+  hook: z.string().max(200).describe("Gancho de apertura, máx 15 palabras"),
+  titulo: z.string().max(200).describe("Título de la idea"),
   puntos: z
-    .array(z.string())
+    .array(z.string().max(1000))
     .min(3)
     .max(5)
     .describe("Copys listos, uno por slide del carrusel"),
-  cta: z.string().describe("Llamado a la acción de cierre"),
+  cta: z.string().max(300).describe("Llamado a la acción de cierre"),
 });
 
 // Versiones del mismo contenido adaptadas por red (1 llamada, no 4).
@@ -46,8 +46,21 @@ export type Versiones = z.infer<typeof versionesSchema>;
 
 export const ideasOutputSchema = z.object({
   ideas: z.array(ideaSchema).min(3).max(7),
-  resumen: z.string().describe("Resumen del contenido en 2 líneas"),
+  resumen: z.string().max(2000).describe("Resumen del contenido en 2 líneas"),
   versiones: versionesSchema.describe("Adaptaciones por red social"),
+});
+
+// Schema estricto para guardar ediciones del usuario (PUT /api/generations).
+// `versiones` es opcional por generaciones viejas que no lo tienen.
+export const saveOutputSchema = z.object({
+  resumen: z.string().max(2000),
+  ideas: z.array(ideaSchema).min(1).max(7),
+  versiones: versionesSchema.optional(),
+});
+
+export const saveGenerationSchema = z.object({
+  id: z.string().cuid(),
+  output: saveOutputSchema,
 });
 
 export type IdeasOutput = z.infer<typeof ideasOutputSchema>;
