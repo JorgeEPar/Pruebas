@@ -1,8 +1,62 @@
 import "server-only";
 
+import nodemailer from "nodemailer";
+
 const BREVO_API = "https://api.brevo.com/v3/smtp/email";
 
+export type EmailDriver = "brevo" | "smtp";
+
+export function emailDriver(): EmailDriver {
+  return process.env.EMAIL_DRIVER === "smtp" ? "smtp" : "brevo";
+}
+
+function smtpTransport() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST ?? "localhost",
+    port: Number(process.env.SMTP_PORT ?? 1025),
+    secure: false,
+  });
+}
+
+async function sendViaSmtp(to: string, subject: string, html: string): Promise<void> {
+  await smtpTransport().sendMail({
+    from: process.env.SMTP_FROM ?? "contenido@localhost",
+    to,
+    subject,
+    html,
+  });
+}
+
+async function sendViaBrevo(to: string, subject: string, html: string): Promise<void> {
+  if (!process.env.BREVO_API_KEY) {
+    throw new Error(
+      "Falta BREVO_API_KEY. Creala gratis en https://app.brevo.com/settings/keys/api-keys (300 emails/día) y agregala al .env",
+    );
+  }
+  const res = await fetch(BREVO_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "api-key": process.env.BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: {
+        name: process.env.BREVO_SENDER_NAME ?? "Contenido IA",
+        email: process.env.BREVO_SENDER_EMAIL ?? "noreply@example.com",
+      },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Brevo ${res.status}: ${body.slice(0, 200)}`);
+  }
+}
+
 export function assertEmailConfigured() {
+  if (emailDriver() === "smtp") return; // Mailpit local no requiere key
   if (!process.env.BREVO_API_KEY) {
     throw new Error(
       "Falta BREVO_API_KEY. Creala gratis en https://app.brevo.com/settings/keys/api-keys (300 emails/día) y agregala al .env",
@@ -57,24 +111,10 @@ export async function sendDigestEmail(
   content: DigestContent,
 ): Promise<void> {
   assertEmailConfigured();
-  const res = await fetch(BREVO_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": process.env.BREVO_API_KEY as string,
-    },
-    body: JSON.stringify({
-      sender: {
-        name: process.env.BREVO_SENDER_NAME ?? "Contenido IA",
-        email: process.env.BREVO_SENDER_EMAIL ?? "noreply@example.com",
-      },
-      to: [{ email: to }],
-      subject,
-      htmlContent: renderDigestHtml(content),
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Brevo ${res.status}: ${body.slice(0, 200)}`);
+  const html = renderDigestHtml(content);
+  if (emailDriver() === "smtp") {
+    await sendViaSmtp(to, subject, html);
+    return;
   }
+  await sendViaBrevo(to, subject, html);
 }

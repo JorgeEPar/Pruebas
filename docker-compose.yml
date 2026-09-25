@@ -16,5 +16,13 @@ services:
       timeout: 5s
       retries: 10
 
+  # SMTP falso para desarrollo: atrapa emails y los muestra en http://localhost:8025
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
 volumes:
   pgdata:

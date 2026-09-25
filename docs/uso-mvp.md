@@ -35,14 +35,15 @@ Sin la key, `/ideas` responde `503` con el mensaje de cómo conseguirla.
 1. Entrá a `/ideas/programado` (requiere invite).
 2. Agregá temas de interés (máx 20). El sistema rota evitando repetir.
 3. Guardá la programación: hora (Argentina), email destino, activo/pausado.
-4. Cada día a esa hora el cron genera el digest y lo envía por email
-   (Brevo, 300 gratis/día). Cupo: `dailyLimit`/día por código (default 1).
-5. **Enviar ahora** ejecuta el digest manualmente (descuenta igual).
-6. **Sin `BREVO_API_KEY`**: la generación se guarda en historial pero el
-   email falla y queda logueado como `failed` en Últimos envíos.
-
-Key gratis: https://app.brevo.com/settings/keys/api-keys → `BREVO_API_KEY`
-en `.env` (+ `BREVO_SENDER_NAME/_EMAIL`). Reiniciar el dev al cambiarla.
+4. Cada día a esa hora el cron genera el digest y lo envía.
+   **Driver de email** (`EMAIL_DRIVER` en `.env`):
+   - `smtp` (default local): Mailpit en Docker, ver en
+     http://localhost:8025. Sin cuentas ni keys.
+   - `brevo`: producción, 300 gratis/día. Key en
+     https://app.brevo.com/settings/keys/api-keys.
+   - Alternativa futura: Resend (100/día, mejor DX Next.js).
+5. Cupo: `dailyLimit`/día por código (default 1).
+6. **Enviar ahora** ejecuta el digest manualmente (descuenta igual).
 
 Cron local de prueba:
 ```bash
