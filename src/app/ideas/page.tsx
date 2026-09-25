@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   Check,
   Copy,
@@ -10,7 +9,6 @@ import {
   History,
   Image as ImageIcon,
   Loader2,
-  LogOut,
   Megaphone,
   Mic,
   Pencil,
@@ -123,7 +121,6 @@ function VersionesPorRed({ versiones }: { versiones: Versiones }) {
 }
 
 export default function IdeasPage() {
-  const router = useRouter();
   const [tab, setTab] = useState("texto");
   const [text, setText] = useState("");
   const [audio, setAudio] = useState<File | null>(null);
@@ -295,11 +292,6 @@ export default function IdeasPage() {
     }
   }
 
-  async function logout() {
-    await fetch("/api/acceso", { method: "DELETE" });
-    router.push("/acceso");
-  }
-
   return (
     <main className="mx-auto max-w-2xl space-y-6 p-6 sm:p-8">
       <header className="space-y-2">
@@ -308,13 +300,9 @@ export default function IdeasPage() {
             De contenido a ideas
           </h1>
           <Badge variant="secondary">MVP · Gemini Flash</Badge>
-          <a href="/ideas/programado" className="text-sm underline">
+          <a href="/ideas/programado" className="text-sm text-muted-foreground underline">
             Programado
           </a>
-          <span className="flex-1" />
-          <Button variant="ghost" size="sm" onClick={logout}>
-            <LogOut /> Salir
-          </Button>
         </div>
         <p className="text-sm text-muted-foreground">
           Generá copys listos para carrusel desde un texto, un audio o una imagen.
