@@ -52,6 +52,16 @@ curl "http://localhost:3000/api/cron/dispatch?secret=TU_CRON_SECRET&hour=8"
 ```
 En producción: Trigger.dev schedule `0 8 * * *` → ese endpoint.
 
+## Carrusel listo para publicar
+
+Cada generación incluye una sección **Carrusel**: un slide 1080×1080
+por idea (hook, título, puntos, CTA, numeración) renderizado con
+Satori + sharp, con miniaturas y botón **Descargar PDF**.
+Render determinista sin costo IA: no descuenta usos.
+Detalle técnico: Satori va en `serverExternalPackages` (su wasm rompe
+empaquetado por Turbopack) y el JSX usa `display` explícito + texto
+en `<span>` (exigencia de Satori).
+
 ## Gestionar códigos
 
 ```bash

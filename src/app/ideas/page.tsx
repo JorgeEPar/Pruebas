@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Check,
   Copy,
+  Download,
   FileAudio,
   FileImage,
   History,
@@ -134,6 +135,7 @@ export default function IdeasPage() {
   const [draft, setDraft] = useState<Idea | null>(null);
   const [saving, setSaving] = useState(false);
   const [regenIndex, setRegenIndex] = useState<number | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const textValid = text.trim().length >= 20;
 
@@ -289,6 +291,34 @@ export default function IdeasPage() {
       setError("Error de red. Reintentá.");
     } finally {
       setRegenIndex(null);
+    }
+  }
+
+  async function downloadPdf() {
+    if (!result || !result.generationId || downloading) return;
+    setDownloading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/carrusel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ generationId: result.generationId }),
+      });
+      if (!res.ok) {
+        setError("No se pudo generar el PDF");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `carrusel-${result.generationId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Error de red. Reintentá.");
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -472,6 +502,38 @@ export default function IdeasPage() {
             <CardContent className="pt-6 text-sm">{result.resumen}</CardContent>
           </Card>
           {result.versiones && <VersionesPorRed versiones={result.versiones} />}
+          {result.generationId && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ImageIcon className="size-4" /> Carrusel listo para publicar
+                </CardTitle>
+                <CardDescription>
+                  Un slide 1080×1080 por idea. Sin costo adicional.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-2">
+                  {result.ideas.map((idea, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={i}
+                      src={`/api/carrusel/slide?id=${result.generationId}&index=${i}`}
+                      alt={`Slide ${i + 1}: ${idea.titulo}`}
+                      className="rounded-md border"
+                      loading="lazy"
+                    />
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button onClick={downloadPdf} disabled={downloading}>
+                  {downloading ? <Loader2 className="animate-spin" /> : <Download />}
+                  Descargar PDF
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
           {result.ideas.map((idea, i) => (
             <Card key={i}>
               <CardHeader>
