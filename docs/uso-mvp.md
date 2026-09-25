@@ -30,6 +30,27 @@ Sin la key, `/ideas` responde `503` con el mensaje de cómo conseguirla.
 7. Cada generación consume 1 uso del código (`maxUses`, default 50).
    Con **Salir** cerrás el acceso (borra la cookie).
 
+## Contenido programado (digest diario por email)
+
+1. Entrá a `/ideas/programado` (requiere invite).
+2. Agregá temas de interés (máx 20). El sistema rota evitando repetir.
+3. Guardá la programación: hora (Argentina), email destino, activo/pausado.
+4. Cada día a esa hora el cron genera el digest y lo envía por email
+   (Brevo, 300 gratis/día). Cupo: `dailyLimit`/día por código (default 1).
+5. **Enviar ahora** ejecuta el digest manualmente (descuenta igual).
+6. **Sin `BREVO_API_KEY`**: la generación se guarda en historial pero el
+   email falla y queda logueado como `failed` en Últimos envíos.
+
+Key gratis: https://app.brevo.com/settings/keys/api-keys → `BREVO_API_KEY`
+en `.env` (+ `BREVO_SENDER_NAME/_EMAIL`). Reiniciar el dev al cambiarla.
+
+Cron local de prueba:
+```bash
+# manual (usa ?hour=N para forzar la hora sin esperar)
+curl "http://localhost:3000/api/cron/dispatch?secret=TU_CRON_SECRET&hour=8"
+```
+En producción: Trigger.dev schedule `0 8 * * *` → ese endpoint.
+
 ## Gestionar códigos
 
 ```bash

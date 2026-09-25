@@ -308,6 +308,9 @@ export default function IdeasPage() {
             De contenido a ideas
           </h1>
           <Badge variant="secondary">MVP · Gemini Flash</Badge>
+          <a href="/ideas/programado" className="text-sm underline">
+            Programado
+          </a>
           <span className="flex-1" />
           <Button variant="ghost" size="sm" onClick={logout}>
             <LogOut /> Salir

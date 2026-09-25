@@ -22,9 +22,13 @@ model InviteCode {
   label     String?  @db.VarChar(120)
   maxUses   Int      @default(50)
   uses      Int      @default(0)
+  dailyLimit Int     @default(1) @map("daily_limit")
   revoked   Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
   generations Generation[]
+  interests   Interest[]
+  schedules   Schedule[]
+  deliveries  Delivery[]
 
   @@map("invite_codes")
 }
@@ -39,6 +43,49 @@ model Generation {
   output     Json
   model      String     @db.VarChar(80)
   createdAt  DateTime   @default(now()) @map("created_at")
+  deliveries Delivery[]
 
   @@map("generations")
+}
+
+// Milestone 3: contenido programado (digest diario por email).
+model Interest {
+  id         String     @id @default(cuid())
+  invite     InviteCode @relation(fields: [inviteCode], references: [code], onDelete: Cascade)
+  inviteCode String     @map("invite_code") @db.VarChar(32)
+  topic      String     @db.VarChar(200)
+  active     Boolean    @default(true)
+  lastUsedAt DateTime?  @map("last_used_at")
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@map("interests")
+}
+
+model Schedule {
+  id         String     @id @default(cuid())
+  invite     InviteCode @relation(fields: [inviteCode], references: [code], onDelete: Cascade)
+  inviteCode String     @unique @map("invite_code") @db.VarChar(32)
+  hour       Int        @map("hora") // 0-23 en `timezone`
+  timezone   String     @default("America/Argentina/Buenos_Aires") @db.VarChar(64)
+  channel    String     @default("email") @db.VarChar(16)
+  emailTo    String     @map("email_to") @db.VarChar(320)
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@map("schedules")
+}
+
+model Delivery {
+  id           String      @id @default(cuid())
+  invite       InviteCode  @relation(fields: [inviteCode], references: [code], onDelete: Cascade)
+  inviteCode   String      @map("invite_code") @db.VarChar(32)
+  generation   Generation? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  generationId String?     @map("generation_id")
+  topic        String      @db.VarChar(200)
+  channel      String      @db.VarChar(16)
+  status       String      @db.VarChar(16) // "sent" | "failed"
+  error        String?     @db.Text
+  sentAt       DateTime    @default(now()) @map("sent_at")
+
+  @@map("deliveries")
 }

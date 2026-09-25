@@ -34,6 +34,8 @@ Sin Server Actions (regla del stack): todo el backend son Route Handlers.
 | `src/lib/ai/provider.ts` | Abstracción del provider (`server-only`: no se filtra al cliente) |
 | `src/lib/rate-limit.ts` | Rate limit en memoria (mover a Redis al escalar) |
 | `prisma/seed.ts` | Códigos iniciales (`npm run db:seed`) |
+| `src/lib/email.ts` | Envío Brevo + render HTML del digest (escape anti-XSS) |
+| `src/lib/dispatch.ts` | `pickTopic` (anti-repetición) + `runDigest` (cuota diaria + total atómicas) |
 
 ## Cambiar de modelo o provider
 
