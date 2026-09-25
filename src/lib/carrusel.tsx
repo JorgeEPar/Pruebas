@@ -120,10 +120,128 @@ export async function renderSlidePng(
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
-export async function renderCarouselPdf(ideas: SlideIdea[]): Promise<Buffer> {
+export async function renderCoverPng(
+  titulo: string,
+  subtitulo: string,
+  total: number,
+): Promise<Buffer> {
+  const fonts = await loadFonts();
+  const svg = await satori(
+    <Cover titulo={titulo} subtitulo={subtitulo} total={total} />,
+    { width: SLIDE_SIZE, height: SLIDE_SIZE, fonts },
+  );
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+export async function renderClosingPng(cta: string, hook: string): Promise<Buffer> {
+  const fonts = await loadFonts();
+  const svg = await satori(<Closing cta={cta} hook={hook} />, {
+    width: SLIDE_SIZE,
+    height: SLIDE_SIZE,
+    fonts,
+  });
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+function Cover({ titulo, subtitulo, total }: { titulo: string; subtitulo: string; total: number }) {
+  return (
+    <div
+      style={{
+        width: SLIDE_SIZE,
+        height: SLIDE_SIZE,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 90,
+        background: "linear-gradient(135deg, #4c1d95 0%, #7c3aed 55%, #d946ef 100%)",
+        fontFamily: "Inter",
+        color: "#fff",
+        textAlign: "center",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          background: "rgba(255,255,255,0.2)",
+          borderRadius: 999,
+          padding: "12px 36px",
+          fontSize: 32,
+          fontWeight: 700,
+          marginBottom: 48,
+        }}
+      >
+        <span>
+          Carrusel · {total} ideas
+        </span>
+      </div>
+      <div style={{ display: "flex", fontSize: 84, fontWeight: 700, lineHeight: 1.1, marginBottom: 36 }}>
+        <span>{titulo}</span>
+      </div>
+      <div style={{ display: "flex", fontSize: 36, opacity: 0.9, lineHeight: 1.4 }}>
+        <span>{subtitulo}</span>
+      </div>
+      <div style={{ display: "flex", fontSize: 30, marginTop: 64, opacity: 0.8 }}>
+        <span>Deslizá →</span>
+      </div>
+    </div>
+  );
+}
+
+function Closing({ cta, hook }: { cta: string; hook: string }) {
+  return (
+    <div
+      style={{
+        width: SLIDE_SIZE,
+        height: SLIDE_SIZE,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 90,
+        background: "linear-gradient(135deg, #d946ef 0%, #7c3aed 55%, #4c1d95 100%)",
+        fontFamily: "Inter",
+        color: "#fff",
+        textAlign: "center",
+      }}
+    >
+      <div style={{ display: "flex", fontSize: 72, fontWeight: 700, marginBottom: 32 }}>
+        <span>¿Te sirvió?</span>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          background: "#fff",
+          color: "#4c1d95",
+          borderRadius: 32,
+          padding: "36px 48px",
+          fontSize: 40,
+          fontWeight: 700,
+          lineHeight: 1.3,
+          marginBottom: 32,
+        }}
+      >
+        <span>{cta}</span>
+      </div>
+      <div style={{ display: "flex", fontSize: 32, opacity: 0.9 }}>
+        <span>{hook}</span>
+      </div>
+    </div>
+  );
+}
+
+export async function renderCarouselPdf(
+  ideas: SlideIdea[],
+  resumen: string,
+): Promise<Buffer> {
   const doc = await PDFDocument.create();
+  const slides: Buffer[] = [await renderCoverPng(ideas[0]?.titulo ?? "Carrusel", resumen.slice(0, 220), ideas.length)];
   for (let i = 0; i < ideas.length; i++) {
-    const png = await renderSlidePng(ideas[i], i, ideas.length);
+    slides.push(await renderSlidePng(ideas[i], i, ideas.length));
+  }
+  const last = ideas[ideas.length - 1];
+  if (last) slides.push(await renderClosingPng(last.cta, last.hook));
+  for (const png of slides) {
     const img = await doc.embedPng(png);
     const page = doc.addPage([SLIDE_SIZE, SLIDE_SIZE]);
     page.drawImage(img, { x: 0, y: 0, width: SLIDE_SIZE, height: SLIDE_SIZE });

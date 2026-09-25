@@ -54,9 +54,11 @@ En producción: Trigger.dev schedule `0 8 * * *` → ese endpoint.
 
 ## Carrusel listo para publicar
 
-Cada generación incluye una sección **Carrusel**: un slide 1080×1080
-por idea (hook, título, puntos, CTA, numeración) renderizado con
+Cada generación incluye una sección **Carrusel**: portada (gancho +
+resumen) + un slide 1080×1080 por idea + cierre (CTA), renderizado con
 Satori + sharp, con miniaturas y botón **Descargar PDF**.
+En las tarjetas: subir/bajar/quitar slides (se guardan solos) y
+regenerar individual.
 Render determinista sin costo IA: no descuenta usos.
 Detalle técnico: Satori va en `serverExternalPackages` (su wasm rompe
 empaquetado por Turbopack) y el JSX usa `display` explícito + texto

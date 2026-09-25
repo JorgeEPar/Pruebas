@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Check,
+  ChevronDown,
+  ChevronUp,
   Copy,
   Download,
   FileAudio,
@@ -18,6 +20,7 @@ import {
   Save,
   Share2,
   Sparkles,
+  Trash2,
   TriangleAlert,
   Type,
   WandSparkles,
@@ -233,6 +236,54 @@ export default function IdeasPage() {
     });
     setEditing(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Persiste el orden/contenido actual (reordenar, quitar).
+  async function persistIdeas(next: Idea[]): Promise<boolean> {
+    if (!result || !result.generationId) return false;
+    try {
+      const res = await fetch("/api/generations", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: result.generationId,
+          output: {
+            resumen: result.resumen,
+            ideas: next,
+            ...(result.versiones ? { versiones: result.versiones } : {}),
+          },
+        }),
+      });
+      if (!res.ok) {
+        setError("No se pudo guardar el cambio");
+        return false;
+      }
+      return true;
+    } catch {
+      setError("Error de red. Reintentá.");
+      return false;
+    }
+  }
+
+  async function moveIdea(i: number, dir: -1 | 1) {
+    if (!result) return;
+    const j = i + dir;
+    if (j < 0 || j >= result.ideas.length) return;
+    const next = [...result.ideas];
+    [next[i], next[j]] = [next[j], next[i]];
+    setResult({ ...result, ideas: next });
+    setEditing(null);
+    const ok = await persistIdeas(next);
+    if (!ok && result.generationId) void openHistory(result.generationId);
+  }
+
+  async function removeIdea(i: number) {
+    if (!result || result.ideas.length <= 1) return;
+    const next = result.ideas.filter((_, j) => j !== i);
+    setResult({ ...result, ideas: next });
+    setEditing(null);
+    const ok = await persistIdeas(next);
+    if (!ok && result.generationId) void openHistory(result.generationId);
   }
 
   function startEdit(i: number) {
@@ -509,21 +560,35 @@ export default function IdeasPage() {
                   <ImageIcon className="size-4" /> Carrusel listo para publicar
                 </CardTitle>
                 <CardDescription>
-                  Un slide 1080×1080 por idea. Sin costo adicional.
+                  Un slide 1080×1080 por idea, con portada y cierre. Sin costo adicional.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/carrusel/slide?id=${result.generationId}&slide=cover`}
+                    alt="Portada del carrusel"
+                    className="rounded-md border"
+                    loading="lazy"
+                  />
                   {result.ideas.map((idea, i) => (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      key={i}
-                      src={`/api/carrusel/slide?id=${result.generationId}&index=${i}`}
+                      key={`${idea.titulo}-${i}`}
+                      src={`/api/carrusel/slide?id=${result.generationId}&slide=${i}`}
                       alt={`Slide ${i + 1}: ${idea.titulo}`}
                       className="rounded-md border"
                       loading="lazy"
                     />
                   ))}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/carrusel/slide?id=${result.generationId}&slide=closing`}
+                    alt="Cierre del carrusel"
+                    className="rounded-md border"
+                    loading="lazy"
+                  />
                 </div>
               </CardContent>
               <CardFooter>
@@ -619,6 +684,23 @@ export default function IdeasPage() {
                       >
                         {regenIndex === i ? <Loader2 className="animate-spin" /> : <RefreshCw />}
                         Regenerar slide
+                      </Button>
+                      <span className="flex-1" />
+                      <Button size="sm" variant="ghost" onClick={() => moveIdea(i, -1)} disabled={i === 0} aria-label="Subir slide">
+                        <ChevronUp />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => moveIdea(i, 1)} disabled={!result || i === result.ideas.length - 1} aria-label="Bajar slide">
+                        <ChevronDown />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeIdea(i)}
+                        disabled={!result || result.ideas.length <= 1}
+                        aria-label="Quitar slide"
+                        className="hover:text-destructive"
+                      >
+                        <Trash2 />
                       </Button>
                     </>
                   )}

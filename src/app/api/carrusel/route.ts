@@ -28,14 +28,17 @@ export async function POST(req: Request) {
   });
   if (!gen) return NextResponse.json({ error: "No encontrada" }, { status: 404 });
 
-  const output = gen.output as { ideas?: unknown };
+  const output = gen.output as { ideas?: unknown; resumen?: string };
   const ideas = z.array(ideaSchema).min(1).max(7).safeParse(output.ideas);
   if (!ideas.success) {
     return NextResponse.json({ error: "Contenido inválido para carrusel" }, { status: 422 });
   }
 
   try {
-    const pdf = await renderCarouselPdf(ideas.data as SlideIdea[]);
+    const pdf = await renderCarouselPdf(
+      ideas.data as SlideIdea[],
+      typeof output.resumen === "string" ? output.resumen : "",
+    );
     const bytes = new Uint8Array(pdf);
     return new NextResponse(bytes, {
       headers: {
